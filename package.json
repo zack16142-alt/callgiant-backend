@@ -1,9 +1,11 @@
 {
   "name": "callgiant",
   "version": "1.0.0",
-  "description": "// COPILOT: Turn this project into a production-ready CallGiant system.\r // Build a full-stack app structure with:\r // - Node.js + Express backend\r // - WebSocket real-time call system\r // - Simple frontend UI dashboard\r // - Call routing logic (queue system)\r // - Basic database layer (start with JSON or SQLite)\r // - Environment config support (.env)\r // - Clean folder structure (frontend / backend / shared)\r //\r // Ensure the app runs with:\r // npm install\r // npm run dev\r //\r // Add proper scripts in package.json.\r // Make everything runnable locally first.\r // NO placeholders — implement real working code.",
-  "main": "index.js",
+  "description": "CallGiant — Real-time call center routing system",
+  "main": "backend/server.js",
   "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -19,7 +19,7 @@
   "use strict";
 
   // ─── Config ──────────────────────────────────────────────────────────────
-  const BACKEND = window.location.origin || "http://localhost:3000";
+  const BACKEND = "https://callgiant-backend.onrender.com";
 
   // ─── DOM Refs ────────────────────────────────────────────────────────────
   const dom = {
@@ -42,6 +42,7 @@
   // ─── Socket Connection with Reconnect ────────────────────────────────────
   function connectSocket() {
     socket = io(BACKEND, {
+      transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
