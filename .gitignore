@@ -7,5 +7,5 @@ dist/
 build/
 *.spec
 *.egg-info/
-node_modules
+node_modules/
 data/*.json

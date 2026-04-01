@@ -20,8 +20,12 @@ from twilio.twiml.voice_response import VoiceResponse, Gather
 # ---------------------------------------------------------------------------
 #  Environment configuration
 # ---------------------------------------------------------------------------
-BASE_URL = os.environ.get("BASE_URL", "")
-PORT     = int(os.environ.get("PORT", "7000"))
+BASE_URL     = os.environ.get("BASE_URL", "")
+PORT         = int(os.environ.get("PORT", "7000"))
+
+# Webhook settings — read from env vars first (Render), DB fallback (local)
+ENV_TTS_MESSAGE  = os.environ.get("TTS_MESSAGE", "")
+ENV_AGENT_NUMBER = os.environ.get("AGENT_NUMBER", "")
 
 # ---------------------------------------------------------------------------
 #  Logging
@@ -35,13 +39,29 @@ logger = logging.getLogger("callgiant.webhook")
 app = Flask(__name__)
 
 # ---------------------------------------------------------------------------
-#  Database helper — reads settings from the same SQLite DB used by CallGiant
+#  Database helper — reads settings from SQLite when running locally.
+#  On Render, the DB won't exist so env vars take priority.
 # ---------------------------------------------------------------------------
 _DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "callgiant.db")
 
+# Map DB setting keys → env var overrides
+_ENV_OVERRIDES = {
+    "tts_message":  ENV_TTS_MESSAGE,
+    "agent_number": ENV_AGENT_NUMBER,
+}
+
 
 def _get_setting(key: str, default: str = "") -> str:
-    """Read a single setting value from the callgiant.db settings table."""
+    """
+    Read a setting value.
+    Priority: environment variable → SQLite DB → default.
+    """
+    # 1. Check env var override
+    env_val = _ENV_OVERRIDES.get(key, "")
+    if env_val:
+        return env_val
+
+    # 2. Try SQLite (works locally, may not exist on Render)
     try:
         conn = sqlite3.connect(_DB_PATH)
         row = conn.execute(
@@ -56,6 +76,17 @@ def _get_setting(key: str, default: str = "") -> str:
 # ---------------------------------------------------------------------------
 #  /voice — initial call handler
 # ---------------------------------------------------------------------------
+
+@app.route("/", methods=["GET"])
+def index():
+    """Health check — confirms the webhook server is alive."""
+    return "CallGiant webhook is running.", 200
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status": "ok", "service": "callgiant-webhook"}, 200
+
 
 @app.route("/voice", methods=["POST"])
 def handle_voice():
@@ -164,6 +195,8 @@ def handle_dtmf():
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 7000))
+    logger.info("Starting CallGiant webhook on port %d", port)
+    logger.info("TTS_MESSAGE: %s", ENV_TTS_MESSAGE or "(from DB)")
+    logger.info("AGENT_NUMBER: %s", ENV_AGENT_NUMBER or "(from DB)")
     app.run(host="0.0.0.0", port=port)
