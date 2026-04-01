@@ -522,6 +522,18 @@ class CallGiantApp:
             self.setting_vars[key] = var
         grp1.columnconfigure(1, weight=1)
 
+        # Webhook URL
+        grp_wh = ttk.LabelFrame(tab, text="Webhook", padding=12)
+        grp_wh.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(grp_wh, text="Webhook URL:").grid(row=0, column=0, sticky=tk.W, pady=4, padx=(0, 8))
+        self.setting_vars["webhook_url"] = tk.StringVar(
+            value="https://callgiant-backend.onrender.com")
+        ttk.Entry(grp_wh, textvariable=self.setting_vars["webhook_url"], width=52).grid(
+            row=0, column=1, sticky=tk.EW, pady=4)
+        ttk.Label(grp_wh, text="The hosted server that handles Twilio call flow.",
+                  style="Dim.TLabel").grid(row=1, column=1, sticky=tk.W)
+        grp_wh.columnconfigure(1, weight=1)
+
         # Call timing
         grp2 = ttk.LabelFrame(tab, text="Timing", padding=12)
         grp2.pack(fill=tk.X, pady=(0, 10))

@@ -3,17 +3,19 @@ CallGiant - Calling Engine
 Handles real Twilio outbound calls via the REST API.
 """
 
-import os
 import threading
 import time
 import queue
+
+from urllib.parse import urlencode
 
 from twilio.rest import Client as TwilioClient
 from twilio.base.exceptions import TwilioRestException
 
 import database as db
 
-BASE_URL = os.environ.get("BASE_URL", "")
+# Default webhook URL — customers can override in the Settings tab.
+DEFAULT_WEBHOOK_URL = "https://callgiant-backend.onrender.com"
 
 
 # ──────────────────────────────────────────────
@@ -58,6 +60,9 @@ class CallEngine:
         account_sid   = db.get_setting("twilio_sid")
         auth_token    = db.get_setting("twilio_token")
         twilio_number = db.get_setting("twilio_number")
+        webhook_url   = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
+        tts_message   = db.get_setting("tts_message", "")
+        agent_number  = db.get_setting("agent_number", "")
         delay         = max(1, float(db.get_setting("call_delay", "5")))
 
         if not account_sid or not auth_token or not twilio_number:
@@ -84,8 +89,14 @@ class CallEngine:
             self.running = False
             return
 
-        voice_url = BASE_URL + "/voice"
-        self.emit("log", f"Voice webhook: {voice_url}")
+        # Build voice URL with per-call settings as query params
+        # so the hosted webhook knows the TTS message & agent number
+        qs = urlencode({k: v for k, v in {
+            "tts_message": tts_message,
+            "agent_number": agent_number,
+        }.items() if v})
+        voice_url = webhook_url + "/voice" + (f"?{qs}" if qs else "")
+        self.emit("log", f"Webhook URL: {webhook_url}")
         self.emit("log", f"Calling from: {twilio_number}")
 
         total = len(leads)
@@ -231,7 +242,15 @@ def make_real_call(phone_number: str, lead_name: str = "") -> dict:
     account_sid   = db.get_setting("twilio_sid")
     auth_token    = db.get_setting("twilio_token")
     twilio_number = db.get_setting("twilio_number")
-    voice_url     = BASE_URL + "/voice"
+    webhook_base  = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
+    tts_message   = db.get_setting("tts_message", "")
+    agent_number  = db.get_setting("agent_number", "")
+
+    qs = urlencode({k: v for k, v in {
+        "tts_message": tts_message,
+        "agent_number": agent_number,
+    }.items() if v})
+    voice_url = webhook_base + "/voice" + (f"?{qs}" if qs else "")
 
     if not account_sid or not auth_token or not twilio_number:
         result["error"] = (

@@ -101,6 +101,10 @@ def handle_voice():
     message = _get_setting("tts_message", "Hello, this is an automated call.")
     agent_number = _get_setting("agent_number", "")
 
+    # Per-call overrides from query params (sent by desktop app)
+    message = request.args.get("tts_message", "") or message
+    agent_number = request.args.get("agent_number", "") or agent_number
+
     response = VoiceResponse()
 
     # Build <Gather> with the spoken message inside it
