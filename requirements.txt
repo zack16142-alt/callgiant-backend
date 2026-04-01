@@ -1,0 +1,6 @@
+twilio>=8.0.0
+pyttsx3>=2.90          # optional – only for the Test TTS (speakers) button
+openpyxl>=3.1.0
+flask>=3.0.0           # webhook server (runs separately on the backend)
+gunicorn>=22.0.0       # production WSGI server
+pyinstaller>=6.0.0     # build standalone .exe (dev dependency)
