@@ -26,6 +26,7 @@ class CallEngine:
     def __init__(self):
         self.message_queue = queue.Queue()
         self.running = False
+        self.paused = False
         self._thread = None
 
     # --- event helpers ---
@@ -40,12 +41,26 @@ class CallEngine:
         if self._thread is not None and self._thread.is_alive():
             return
         self.running = True
+        self.paused = False
         self._thread = threading.Thread(target=self._call_loop, daemon=True)
         self._thread.start()
 
     def stop_calling(self):
         self.running = False
+        self.paused = False
         self.emit("log", "STOP requested — finishing current call...")
+
+    def pause_calling(self):
+        if self.running and not self.paused:
+            self.paused = True
+            self.emit("log", "⏸  PAUSED — waiting to resume...")
+            self.emit("paused", None)
+
+    def resume_calling(self):
+        if self.running and self.paused:
+            self.paused = False
+            self.emit("log", "▶  RESUMED")
+            self.emit("resumed", None)
 
     # --- main loop ---
     def _call_loop(self):
@@ -110,6 +125,13 @@ class CallEngine:
             phone = lead["phone"]
             name  = lead.get("name", "") or "Unknown"
 
+            # ── Wait while paused ──
+            while self.paused and self.running:
+                time.sleep(0.2)
+            if not self.running:
+                self.emit("log", "\nStopped by user.")
+                break
+
             self.emit("progress", (i, total))
             self.emit("log", f"\n[{i+1}/{total}] Calling {name} ({phone}) ...")
 
@@ -149,12 +171,14 @@ class CallEngine:
                     call_status=f"error: {e}",
                 )
 
-            # Delay between calls (check stop flag every 100ms)
+            # Delay between calls (check stop + pause flags every 100ms)
             if self.running and i < total - 1:
                 self.emit("log", f"  Waiting {delay}s before next call...")
                 for _ in range(int(delay * 10)):
                     if not self.running:
                         break
+                    while self.paused and self.running:
+                        time.sleep(0.2)
                     time.sleep(0.1)
 
         self.emit("progress", (total, total))

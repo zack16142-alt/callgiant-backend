@@ -733,6 +733,17 @@ class CallGiantApp:
         )
         self.start_btn.pack(side=tk.LEFT, padx=10)
 
+        self.pause_btn = tk.Button(
+            btn_frame, text="⏸   PAUSE",
+            font=("Segoe UI", 20, "bold"),
+            bg="#1a2636", fg="#3a5068",
+            activebackground="#e6a800", activeforeground="white",
+            width=10, height=2, cursor="hand2",
+            relief=tk.FLAT, bd=0, highlightthickness=0,
+            state=tk.DISABLED, command=self._toggle_pause,
+        )
+        self.pause_btn.pack(side=tk.LEFT, padx=10)
+
         self.stop_btn = tk.Button(
             btn_frame, text="■   STOP",
             font=("Segoe UI", 20, "bold"),
@@ -796,6 +807,8 @@ class CallGiantApp:
         db.save_setting("tts_message", self.message_text.get("1.0", tk.END).strip())
 
         self.start_btn.config(state=tk.DISABLED, bg=self.BG_LIGHT, fg=self.FG_MUTED)
+        self.pause_btn.config(state=tk.NORMAL, bg="#e6a800", fg="white",
+                              text="⏸   PAUSE")
         self.stop_btn.config(state=tk.NORMAL, bg=self.RED, fg="white")
         self.progress_bar["value"] = 0
         self.progress_var.set("Starting...")
@@ -809,8 +822,26 @@ class CallGiantApp:
 
         self.engine.start_calling()
 
+    def _toggle_pause(self):
+        if not self.engine.running:
+            return
+        if self.engine.paused:
+            self.engine.resume_calling()
+            self.pause_btn.config(text="⏸   PAUSE", bg="#e6a800", fg="white")
+            self.progress_var.set("Resumed")
+            self.status_var.set("Calling resumed")
+            self.status_dot.config(fg=self.ACCENT)
+        else:
+            self.engine.pause_calling()
+            self.pause_btn.config(text="▶  RESUME", bg=self.ACCENT, fg="white")
+            self.progress_var.set("⏸  Paused")
+            self.status_var.set("Calling paused — press Resume to continue")
+            self.status_dot.config(fg=self.GOLD)
+
     def _stop_calling(self):
         self.engine.stop_calling()
+        self.pause_btn.config(state=tk.DISABLED, bg="#1a2636", fg="#3a5068",
+                              text="⏸   PAUSE")
         self.stop_btn.config(state=tk.DISABLED, bg="#331111", fg="#663333")
         self.progress_var.set("Stopping...")
         self.status_var.set("Stop requested — finishing current call...")
@@ -841,6 +872,8 @@ class CallGiantApp:
                         self.progress_var.set(f"Progress: {current} / {total}  ({pct}%)")
                 elif event_type == "complete":
                     self.start_btn.config(state=tk.NORMAL, bg=self.GREEN, fg="white")
+                    self.pause_btn.config(state=tk.DISABLED, bg="#1a2636", fg="#3a5068",
+                                          text="⏸   PAUSE")
                     self.stop_btn.config(state=tk.DISABLED, bg="#331111", fg="#663333")
                     self.progress_var.set("✓  Complete")
                     self.status_var.set("Calling session complete")
