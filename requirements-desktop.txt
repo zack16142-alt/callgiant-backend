@@ -1,0 +1,6 @@
+# CallGiant — Desktop App Dependencies
+# Install with:  pip install -r requirements-desktop.txt
+
+twilio>=8.0.0
+openpyxl>=3.1.0
+pyttsx3>=2.90

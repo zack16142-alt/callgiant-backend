@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import csv
 import os
+import re
 import queue as q
 import threading
 
@@ -336,6 +337,27 @@ class CallGiantApp:
     _COMPANY_NAMES = ["company", "company_name", "organization", "org",
                       "business", "business_name", "employer"]
 
+    @staticmethod
+    def _normalize_phone(raw: str) -> str:
+        """Normalize a phone number toward E.164 format.
+        Strips non-digit chars (except leading +), prepends +1 for
+        10-digit US numbers.  Returns empty string if invalid."""
+        raw = raw.strip()
+        if not raw:
+            return ""
+        # Keep leading + if present
+        if raw.startswith("+"):
+            digits = re.sub(r"[^\d]", "", raw)
+            return "+" + digits if len(digits) >= 10 else ""
+        digits = re.sub(r"[^\d]", "", raw)
+        if len(digits) == 10:          # US number without country code
+            return "+1" + digits
+        elif len(digits) == 11 and digits.startswith("1"):  # 1XXXXXXXXXX
+            return "+" + digits
+        elif len(digits) >= 10:         # international
+            return "+" + digits
+        return ""                       # too short / invalid
+
     def _parse_csv(self, path):
         with open(path, "r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
@@ -364,15 +386,23 @@ class CallGiantApp:
             phone_col = chosen.lower().strip()
 
         leads = []
+        skipped = 0
         for row in all_rows_raw:
             vals = {k.lower().strip(): v for k, v in row.items()}
-            phone = vals.get(phone_col, "").strip()
+            phone = self._normalize_phone(vals.get(phone_col, ""))
             if phone:
                 leads.append({
                     "phone": phone,
                     "name": vals.get(name_col, "").strip() if name_col else "",
                     "company": vals.get(company_col, "").strip() if company_col else "",
                 })
+            else:
+                skipped += 1
+        if skipped:
+            messagebox.showwarning(
+                "Phone Numbers",
+                f"{skipped} rows had invalid phone numbers and were skipped.\n"
+                "Phone numbers must be at least 10 digits (e.g. +15551234567).")
         return leads
 
     def _parse_xlsx(self, path):
@@ -410,21 +440,30 @@ class CallGiantApp:
         ci = hdrs_lower.index(company_col) if company_col else None
 
         leads = []
+        skipped = 0
         for row in rows[1:]:
             if pi >= len(row):
                 continue
             raw = row[pi]
             # Handle numeric phone values (Excel may store as float)
             if isinstance(raw, (int, float)):
-                phone = str(int(raw))
+                phone_raw = str(int(raw))
             else:
-                phone = str(raw or "").strip()
+                phone_raw = str(raw or "").strip()
+            phone = self._normalize_phone(phone_raw)
             if phone:
                 leads.append({
                     "phone": phone,
                     "name": str(row[ni] or "").strip() if ni is not None and ni < len(row) else "",
                     "company": str(row[ci] or "").strip() if ci is not None and ci < len(row) else "",
                 })
+            else:
+                skipped += 1
+        if skipped:
+            messagebox.showwarning(
+                "Phone Numbers",
+                f"{skipped} rows had invalid phone numbers and were skipped.\n"
+                "Phone numbers must be at least 10 digits (e.g. +15551234567).")
         return leads
 
     @staticmethod
