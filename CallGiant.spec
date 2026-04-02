@@ -18,7 +18,7 @@ a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[("callgiant.ico", ".")],
     hiddenimports=[
         "twilio",
         "twilio.rest",
@@ -52,6 +52,7 @@ exe = EXE(
     a.datas,
     [],
     name="CallGiant",
+    icon="callgiant.ico",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

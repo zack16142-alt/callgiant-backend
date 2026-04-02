@@ -31,6 +31,15 @@ def main():
 
     root = tk.Tk()
     root.iconname("CallGiant")
+
+    # Set window icon (works both frozen .exe and dev)
+    icon_path = os.path.join(
+        getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))),
+        'callgiant.ico',
+    )
+    if os.path.exists(icon_path):
+        root.iconbitmap(icon_path)
+
     CallGiantApp(root)
     root.mainloop()
 
