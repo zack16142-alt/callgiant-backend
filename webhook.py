@@ -15,7 +15,7 @@ import os
 import sqlite3
 
 from flask import Flask, request, Response
-from twilio.twiml.voice_response import VoiceResponse, Gather
+from twilio.twiml.voice_response import Dial, VoiceResponse, Gather
 
 # ---------------------------------------------------------------------------
 #  Environment configuration
@@ -25,7 +25,7 @@ PORT         = int(os.environ.get("PORT", "7000"))
 
 # Webhook settings — read from env vars first (Render), DB fallback (local)
 ENV_TTS_MESSAGE  = os.environ.get("TTS_MESSAGE", "")
-ENV_AGENT_NUMBER = os.environ.get("AGENT_NUMBER", "")
+ENV_AGENTS       = os.environ.get("AGENTS", "")  # comma-separated agent numbers
 
 # ---------------------------------------------------------------------------
 #  Logging
@@ -47,7 +47,7 @@ _DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "callgiant.d
 # Map DB setting keys → env var overrides
 _ENV_OVERRIDES = {
     "tts_message":  ENV_TTS_MESSAGE,
-    "agent_number": ENV_AGENT_NUMBER,
+    "agents":       ENV_AGENTS,
 }
 
 
@@ -99,18 +99,19 @@ def handle_voice():
     4. If no input is received, says goodbye and hangs up.
     """
     message = _get_setting("tts_message", "Hello, this is an automated call.")
-    agent_number = _get_setting("agent_number", "")
+
+    # Collect agent numbers: query param (per-call from desktop) → env var → DB
+    agents_raw = request.args.get("agents", "") or _get_setting("agents", "")
 
     # Per-call overrides from query params (sent by desktop app)
     message = request.args.get("tts_message", "") or message
-    agent_number = request.args.get("agent_number", "") or agent_number
 
     response = VoiceResponse()
 
     # Build <Gather> with the spoken message inside it
     gather = Gather(
         num_digits=1,
-        action=f"/dtmf?agent={agent_number}",
+        action=f"/dtmf?agents={agents_raw}",
         method="POST",
     )
     gather.say(message, voice="alice")
@@ -132,23 +133,26 @@ def handle_dtmf():
     """
     Twilio POSTs here after the callee presses a digit during <Gather>.
 
-    The agent number is passed as a query parameter from /voice:
-        action="/dtmf?agent=+15551234567"
+    Agent numbers are passed as a comma-separated query parameter from /voice:
+        action="/dtmf?agents=+15551234567,+15559876543"
 
-    Digit "1"  →  mark transfer in DB, <Dial> agent
+    Digit "1"  →  mark transfer in DB, <Dial> all agents simultaneously
     Anything else  →  <Say> thank you, hang up
     """
     digits       = request.form.get("Digits", "")
     call_sid     = request.form.get("CallSid", "")
     caller_phone = request.form.get("From", "")
 
-    agent_number = (
-        request.args.get("agent")
-        or request.form.get("agent_number")
+    agents_raw = (
+        request.args.get("agents")
+        or request.form.get("agents")
         or ""
     )
+    # Parse comma-separated agents, skip blanks
+    agent_numbers = [a.strip() for a in agents_raw.split(",") if a.strip()]
 
-    logger.info("DTMF received: %s  |  CallSid: %s  |  From: %s", digits, call_sid, caller_phone)
+    logger.info("DTMF received: %s  |  CallSid: %s  |  From: %s  |  Agents: %s",
+                digits, call_sid, caller_phone, agent_numbers)
 
     # Persist the DTMF result in the database
     try:
@@ -180,9 +184,14 @@ def handle_dtmf():
     # Build TwiML response
     response = VoiceResponse()
 
-    if digits == "1" and agent_number:
+    if digits == "1" and agent_numbers:
         response.say("Connecting you now. Please hold.", voice="alice")
-        response.dial(agent_number)
+        # Simultaneous ring — all agent phones ring at once,
+        # first to pick up gets the call.
+        dial = Dial()
+        for num in agent_numbers:
+            dial.number(num)
+        response.append(dial)
     elif digits == "1":
         response.say(
             "Thank you for your interest. An agent will call you back shortly.",
@@ -202,5 +211,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7000))
     logger.info("Starting CallGiant webhook on port %d", port)
     logger.info("TTS_MESSAGE: %s", ENV_TTS_MESSAGE or "(from DB)")
-    logger.info("AGENT_NUMBER: %s", ENV_AGENT_NUMBER or "(from DB)")
+    logger.info("AGENTS: %s", ENV_AGENTS or "(from DB)")
     app.run(host="0.0.0.0", port=port)

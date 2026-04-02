@@ -687,7 +687,6 @@ class CallGiantApp:
             ("twilio_sid",    "Account SID",           "",     False),
             ("twilio_token",  "Auth Token",            "",     True),
             ("twilio_number", "Twilio Phone Number",   "+1…",  False),
-            ("agent_number",  "Agent Transfer Number", "+1…",  False),
         ]
         for i, (key, label, ph, secret) in enumerate(fields):
             ttk.Label(grp1, text=label, style="Card.TLabel").grid(
@@ -698,6 +697,29 @@ class CallGiantApp:
             ent.grid(row=i, column=1, sticky=tk.EW, pady=6)
             self.setting_vars[key] = var
         grp1.columnconfigure(1, weight=1)
+
+        # ── Agent Transfer Numbers card (simultaneous ring) ──
+        grp_agents = ttk.LabelFrame(scroll_frame,
+                                     text="  👥  Agent Transfer Numbers  ", padding=16)
+        grp_agents.pack(fill=tk.X, pady=(0, 12), padx=4)
+
+        agent_fields = [
+            ("agent_number_1", "Agent 1"),
+            ("agent_number_2", "Agent 2"),
+            ("agent_number_3", "Agent 3"),
+        ]
+        for i, (key, label) in enumerate(agent_fields):
+            ttk.Label(grp_agents, text=label, style="Card.TLabel").grid(
+                row=i, column=0, sticky=tk.W, pady=6, padx=(0, 12))
+            var = tk.StringVar()
+            ttk.Entry(grp_agents, textvariable=var, width=52).grid(
+                row=i, column=1, sticky=tk.EW, pady=6)
+            self.setting_vars[key] = var
+        ttk.Label(grp_agents,
+                  text="All filled numbers ring simultaneously — first pickup gets the call.",
+                  style="Dim.TLabel").grid(row=len(agent_fields), column=0,
+                                           columnspan=2, sticky=tk.W, pady=(4, 0))
+        grp_agents.columnconfigure(1, weight=1)
 
         # ── Webhook card ──
         grp_wh = ttk.LabelFrame(scroll_frame, text="  🌐  Webhook  ", padding=16)
@@ -735,6 +757,13 @@ class CallGiantApp:
             val = db.get_setting(key, "")
             if val:
                 var.set(val)
+
+        # Backward-compat: migrate old single agent_number → agent_number_1
+        old_agent = db.get_setting("agent_number", "")
+        if old_agent and not db.get_setting("agent_number_1", ""):
+            self.setting_vars["agent_number_1"].set(old_agent)
+            db.save_setting("agent_number_1", old_agent)
+
         msg = db.get_setting("tts_message", "")
         if msg:
             self.message_text.delete("1.0", tk.END)

@@ -77,8 +77,14 @@ class CallEngine:
         twilio_number = db.get_setting("twilio_number")
         webhook_url   = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
         tts_message   = db.get_setting("tts_message", "")
-        agent_number  = db.get_setting("agent_number", "")
         delay         = max(1, float(db.get_setting("call_delay", "5")))
+
+        # Load up to 3 agent transfer numbers (simultaneous ring)
+        agents = ",".join(filter(None, [
+            db.get_setting("agent_number_1", "").strip(),
+            db.get_setting("agent_number_2", "").strip(),
+            db.get_setting("agent_number_3", "").strip(),
+        ]))
 
         if not account_sid or not auth_token or not twilio_number:
             self.emit("log", "[ERROR] Twilio credentials missing — cannot make calls.")
@@ -105,10 +111,10 @@ class CallEngine:
             return
 
         # Build voice URL with per-call settings as query params
-        # so the hosted webhook knows the TTS message & agent number
+        # so the hosted webhook knows the TTS message & agent numbers
         qs = urlencode({k: v for k, v in {
             "tts_message": tts_message,
-            "agent_number": agent_number,
+            "agents": agents,
         }.items() if v})
         voice_url = webhook_url + "/voice" + (f"?{qs}" if qs else "")
         self.emit("log", f"Webhook URL: {webhook_url}")
@@ -268,11 +274,17 @@ def make_real_call(phone_number: str, lead_name: str = "") -> dict:
     twilio_number = db.get_setting("twilio_number")
     webhook_base  = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
     tts_message   = db.get_setting("tts_message", "")
-    agent_number  = db.get_setting("agent_number", "")
+
+    # Load up to 3 agent transfer numbers (simultaneous ring)
+    agents = ",".join(filter(None, [
+        db.get_setting("agent_number_1", "").strip(),
+        db.get_setting("agent_number_2", "").strip(),
+        db.get_setting("agent_number_3", "").strip(),
+    ]))
 
     qs = urlencode({k: v for k, v in {
         "tts_message": tts_message,
-        "agent_number": agent_number,
+        "agents": agents,
     }.items() if v})
     voice_url = webhook_base + "/voice" + (f"?{qs}" if qs else "")
 
