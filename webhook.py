@@ -13,6 +13,7 @@ Environment variables:
 import logging
 import os
 import sqlite3
+from urllib.parse import quote
 
 from flask import Flask, request, Response
 from twilio.twiml.voice_response import Dial, VoiceResponse, Gather
@@ -111,7 +112,7 @@ def handle_voice():
     # Build <Gather> with the spoken message inside it
     gather = Gather(
         num_digits=1,
-        action=f"/dtmf?agents={agents_raw}",
+        action=f"/dtmf?agents={quote(agents_raw, safe='')}",
         method="POST",
     )
     gather.say(message, voice="alice")
