@@ -141,7 +141,7 @@ def handle_dtmf():
     """
     digits       = request.form.get("Digits", "")
     call_sid     = request.form.get("CallSid", "")
-    caller_phone = request.form.get("From", "")
+    caller_phone = request.form.get("To", "")  # To = the lead's phone (outbound call)
 
     agents_raw = (
         request.args.get("agents")

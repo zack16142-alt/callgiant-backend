@@ -674,10 +674,11 @@ class CallGiantApp:
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Mouse wheel scrolling
+        # Mouse wheel scrolling (only when hovering over the settings canvas)
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
         # ── Twilio Credentials card ──
         grp1 = ttk.LabelFrame(scroll_frame, text="  🔑  Twilio Credentials  ", padding=16)

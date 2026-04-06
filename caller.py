@@ -77,7 +77,10 @@ class CallEngine:
         twilio_number = db.get_setting("twilio_number")
         webhook_url   = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
         tts_message   = db.get_setting("tts_message", "")
-        delay         = max(1, float(db.get_setting("call_delay", "5")))
+        try:
+            delay = max(1, float(db.get_setting("call_delay", "5")))
+        except (ValueError, TypeError):
+            delay = 5.0
 
         # Load up to 3 agent transfer numbers (simultaneous ring)
         agents = ",".join(filter(None, [
@@ -352,7 +355,7 @@ def _log_call_result(phone: str, name: str, result: dict):
             phone_number=phone or "",
             lead_name=name or "",
             call_status=status_text,
-            agent_transferred=result.get("pressed_1", False),
+            agent_transferred=result.get("agent_transferred", False),
             call_duration=result.get("duration", 0),
         )
     except Exception:
