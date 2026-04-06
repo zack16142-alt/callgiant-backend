@@ -731,6 +731,9 @@ class CallGiantApp:
             ("agent_number_1", "Agent 1"),
             ("agent_number_2", "Agent 2"),
             ("agent_number_3", "Agent 3"),
+            ("agent_number_4", "Agent 4"),
+            ("agent_number_5", "Agent 5"),
+            ("agent_number_6", "Agent 6"),
         ]
         for i, (key, label) in enumerate(agent_fields):
             ttk.Label(grp_agents, text=label, style="Card.TLabel").grid(

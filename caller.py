@@ -82,11 +82,14 @@ class CallEngine:
         except (ValueError, TypeError):
             delay = 5.0
 
-        # Load up to 3 agent transfer numbers (simultaneous ring)
+        # Load up to 6 agent transfer numbers (simultaneous ring)
         agents = ",".join(filter(None, [
             db.get_setting("agent_number_1", "").strip(),
             db.get_setting("agent_number_2", "").strip(),
             db.get_setting("agent_number_3", "").strip(),
+            db.get_setting("agent_number_4", "").strip(),
+            db.get_setting("agent_number_5", "").strip(),
+            db.get_setting("agent_number_6", "").strip(),
         ]))
 
         if not account_sid or not auth_token or not twilio_number:
@@ -278,11 +281,14 @@ def make_real_call(phone_number: str, lead_name: str = "") -> dict:
     webhook_base  = db.get_setting("webhook_url", DEFAULT_WEBHOOK_URL).rstrip("/")
     tts_message   = db.get_setting("tts_message", "")
 
-    # Load up to 3 agent transfer numbers (simultaneous ring)
+    # Load up to 6 agent transfer numbers (simultaneous ring)
     agents = ",".join(filter(None, [
         db.get_setting("agent_number_1", "").strip(),
         db.get_setting("agent_number_2", "").strip(),
         db.get_setting("agent_number_3", "").strip(),
+        db.get_setting("agent_number_4", "").strip(),
+        db.get_setting("agent_number_5", "").strip(),
+        db.get_setting("agent_number_6", "").strip(),
     ]))
 
     qs = urlencode({k: v for k, v in {
