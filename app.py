@@ -70,10 +70,33 @@ class CallGiantApp:
         logo_frame = tk.Frame(header, bg=self.BG)
         logo_frame.pack(side=tk.LEFT, padx=20, pady=10)
 
-        tk.Label(
-            logo_frame, text="📞", font=("Segoe UI Emoji", 24),
-            bg=self.BG, fg=self.ACCENT,
-        ).pack(side=tk.LEFT, padx=(0, 10))
+        # Draw a proper logo on a canvas (no emoji dependency)
+        logo_size = 44
+        logo_canvas = tk.Canvas(
+            logo_frame, width=logo_size, height=logo_size,
+            bg=self.BG, highlightthickness=0,
+        )
+        logo_canvas.pack(side=tk.LEFT, padx=(0, 12))
+        # Circle background
+        logo_canvas.create_oval(
+            2, 2, logo_size - 2, logo_size - 2,
+            fill="#0d1a26", outline=self.ACCENT, width=2,
+        )
+        # Phone handset (two circles + connecting bar)
+        logo_canvas.create_oval(10, 10, 20, 20, fill=self.ACCENT, outline="")
+        logo_canvas.create_oval(logo_size-22, logo_size-22,
+                                logo_size-12, logo_size-12,
+                                fill=self.ACCENT, outline="")
+        logo_canvas.create_line(15, 15, logo_size-17, logo_size-17,
+                                fill=self.ACCENT, width=5)
+        # Signal waves (gold arcs)
+        for r in [8, 13, 18]:
+            logo_canvas.create_arc(
+                logo_size//2 + 2 - r, 2 - r,
+                logo_size//2 + 2 + r, 2 + r,
+                start=280, extent=60, style="arc",
+                outline=self.GOLD, width=2,
+            )
 
         title_frame = tk.Frame(logo_frame, bg=self.BG)
         title_frame.pack(side=tk.LEFT)
@@ -259,15 +282,15 @@ class CallGiantApp:
     # ═══════════════════════════════════════════
     def _build_leads_tab(self):
         tab = ttk.Frame(self.notebook, padding=16)
-        self.notebook.add(tab, text="  📋  Leads  ")
+        self.notebook.add(tab, text="   Leads   ")
 
         # Top bar
         bar = ttk.Frame(tab)
         bar.pack(fill=tk.X, pady=(0, 12))
 
-        ttk.Button(bar, text="⬆  Import CSV / XLSX",
+        ttk.Button(bar, text="Import CSV / XLSX",
                    command=self._import_leads).pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Button(bar, text="🗑  Clear All", style="Danger.TButton",
+        ttk.Button(bar, text="Clear All", style="Danger.TButton",
                    command=self._clear_leads).pack(side=tk.LEFT)
 
         self.leads_count_var = tk.StringVar(value="0 leads loaded")
@@ -578,7 +601,7 @@ class CallGiantApp:
             self.leads_tree.insert("", tk.END, values=(
                 ld["id"], ld["phone"], ld["name"], ld["company"],
             ))
-        self.leads_count_var.set(f"📋  {len(leads)} leads loaded")
+        self.leads_count_var.set(f"{len(leads)} leads loaded")
 
     def _clear_leads(self):
         if messagebox.askyesno("Clear Leads", "Remove all imported leads?"):
@@ -590,7 +613,7 @@ class CallGiantApp:
     # ═══════════════════════════════════════════
     def _build_message_tab(self):
         tab = ttk.Frame(self.notebook, padding=16)
-        self.notebook.add(tab, text="  💬  Message  ")
+        self.notebook.add(tab, text="   Message   ")
 
         # Header
         hdr = ttk.Frame(tab)
@@ -625,8 +648,8 @@ class CallGiantApp:
 
         bottom = ttk.Frame(tab)
         bottom.pack(fill=tk.X)
-        ttk.Button(bottom, text="🔊  Preview TTS", command=self._test_tts).pack(side=tk.LEFT)
-        ttk.Button(bottom, text="💾  Save Message", command=self._save_message).pack(side=tk.LEFT, padx=10)
+        ttk.Button(bottom, text="Preview TTS", command=self._test_tts).pack(side=tk.LEFT)
+        ttk.Button(bottom, text="Save Message", command=self._save_message).pack(side=tk.LEFT, padx=10)
         ttk.Label(bottom, textvariable=self.char_count_var,
                   style="Dim.TLabel").pack(side=tk.RIGHT)
 
@@ -658,7 +681,7 @@ class CallGiantApp:
     # ═══════════════════════════════════════════
     def _build_settings_tab(self):
         tab = ttk.Frame(self.notebook, padding=16)
-        self.notebook.add(tab, text="  ⚙  Settings  ")
+        self.notebook.add(tab, text="   Settings   ")
         self.setting_vars = {}
 
         # Scrollable container for settings
@@ -681,7 +704,7 @@ class CallGiantApp:
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
 
         # ── Twilio Credentials card ──
-        grp1 = ttk.LabelFrame(scroll_frame, text="  🔑  Twilio Credentials  ", padding=16)
+        grp1 = ttk.LabelFrame(scroll_frame, text="  Twilio Credentials  ", padding=16)
         grp1.pack(fill=tk.X, pady=(0, 12), padx=4)
 
         fields = [
@@ -701,7 +724,7 @@ class CallGiantApp:
 
         # ── Agent Transfer Numbers card (simultaneous ring) ──
         grp_agents = ttk.LabelFrame(scroll_frame,
-                                     text="  👥  Agent Transfer Numbers  ", padding=16)
+                                     text="  Agent Transfer Numbers  ", padding=16)
         grp_agents.pack(fill=tk.X, pady=(0, 12), padx=4)
 
         agent_fields = [
@@ -723,7 +746,7 @@ class CallGiantApp:
         grp_agents.columnconfigure(1, weight=1)
 
         # ── Webhook card ──
-        grp_wh = ttk.LabelFrame(scroll_frame, text="  🌐  Webhook  ", padding=16)
+        grp_wh = ttk.LabelFrame(scroll_frame, text="  Webhook  ", padding=16)
         grp_wh.pack(fill=tk.X, pady=(0, 12), padx=4)
 
         ttk.Label(grp_wh, text="Webhook URL", style="Card.TLabel").grid(
@@ -738,7 +761,7 @@ class CallGiantApp:
         grp_wh.columnconfigure(1, weight=1)
 
         # ── Timing card ──
-        grp2 = ttk.LabelFrame(scroll_frame, text="  ⏱  Timing  ", padding=16)
+        grp2 = ttk.LabelFrame(scroll_frame, text="  Timing  ", padding=16)
         grp2.pack(fill=tk.X, pady=(0, 12), padx=4)
 
         ttk.Label(grp2, text="Delay between calls (seconds)",
@@ -750,7 +773,7 @@ class CallGiantApp:
         # ── Save button ──
         save_frame = ttk.Frame(scroll_frame)
         save_frame.pack(fill=tk.X, pady=16, padx=4)
-        ttk.Button(save_frame, text="💾  Save All Settings",
+        ttk.Button(save_frame, text="Save All Settings",
                    command=self._save_settings).pack(side=tk.RIGHT)
 
     def _load_settings(self):
@@ -785,7 +808,7 @@ class CallGiantApp:
     # ═══════════════════════════════════════════
     def _build_control_tab(self):
         tab = ttk.Frame(self.notebook, padding=16)
-        self.notebook.add(tab, text="  📞  Call Control  ")
+        self.notebook.add(tab, text="   Call Control   ")
 
         # ── Big action buttons ──
         btn_frame = tk.Frame(tab, bg=self.BG)
@@ -957,13 +980,13 @@ class CallGiantApp:
     # ═══════════════════════════════════════════
     def _build_logs_tab(self):
         tab = ttk.Frame(self.notebook, padding=16)
-        self.notebook.add(tab, text="  📊  Logs  ")
+        self.notebook.add(tab, text="   Logs   ")
 
         bar = ttk.Frame(tab)
         bar.pack(fill=tk.X, pady=(0, 12))
-        ttk.Button(bar, text="🔄  Refresh", command=self._refresh_logs_table).pack(
+        ttk.Button(bar, text="Refresh", command=self._refresh_logs_table).pack(
             side=tk.LEFT, padx=(0, 8))
-        ttk.Button(bar, text="🗑  Clear Logs", style="Danger.TButton",
+        ttk.Button(bar, text="Clear Logs", style="Danger.TButton",
                    command=self._clear_logs).pack(side=tk.LEFT)
         self.logs_count_var = tk.StringVar(value="0 calls recorded")
         ttk.Label(bar, textvariable=self.logs_count_var,
@@ -1007,7 +1030,7 @@ class CallGiantApp:
                 f'{lg["call_duration"]}s',
                 lg["timestamp"],
             ))
-        self.logs_count_var.set(f"📊  {len(logs)} calls recorded")
+        self.logs_count_var.set(f"{len(logs)} calls recorded")
 
     def _clear_logs(self):
         if messagebox.askyesno("Clear Logs", "Delete all call log history?"):
