@@ -128,6 +128,7 @@ class CallGiantApp:
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True)
 
+        self._build_guide_tab()
         self._build_leads_tab()
         self._build_message_tab()
         self._build_settings_tab()
@@ -1039,6 +1040,134 @@ class CallGiantApp:
         if messagebox.askyesno("Clear Logs", "Delete all call log history?"):
             db.clear_call_logs()
             self._refresh_logs_table()
+
+    # ═══════════════════════════════════════════
+    #  TAB 0 — Setup Guide
+    # ═══════════════════════════════════════════
+    def _build_guide_tab(self):
+        tab = ttk.Frame(self.notebook, padding=16)
+        self.notebook.add(tab, text="   Setup Guide   ")
+
+        # Scrollable container
+        canvas = tk.Canvas(tab, bg=self.BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(tab, orient=tk.VERTICAL, command=canvas.yview)
+        content = tk.Frame(canvas, bg=self.BG)
+
+        content.bind("<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=content, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Mouse wheel scrolling (scoped to this canvas)
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        # ── Header ──
+        tk.Label(content, text="Welcome to CallGiant",
+                 font=("Segoe UI", 20, "bold"), bg=self.BG, fg=self.FG,
+                 anchor=tk.W).pack(fill=tk.X, pady=(0, 4))
+        tk.Label(content, text="Follow these steps to start making automated calls.",
+                 font=("Segoe UI", 11), bg=self.BG, fg=self.FG_DIM,
+                 anchor=tk.W).pack(fill=tk.X, pady=(0, 16))
+
+        # ── Steps ──
+        steps = [
+            ("1", "Create a Twilio Account",
+             "Go to twilio.com and sign up.\n"
+             "Upgrade to a paid account (add a credit card and funds).\n"
+             "Trial accounts can only call pre-verified numbers."),
+
+            ("2", "Buy a Phone Number",
+             "In Twilio: Phone Numbers  \u2192  Buy a Number.\n"
+             "Make sure \"Voice\" capability is checked.\n"
+             "This is the number your leads will see when you call them."),
+
+            ("3", "Enable Geographic Permissions",
+             "In Twilio: Voice  \u2192  Settings  \u2192  Geo Permissions.\n"
+             "Check every country where your leads are located\n"
+             "(at minimum: United States and/or Canada).\n"
+             "Without this, calls will fail with a geographic permission error."),
+
+            ("4", "Enter Twilio Credentials in CallGiant",
+             "Go to the Settings tab in this app and fill in:\n"
+             "  \u2022  Account SID  (found on your Twilio dashboard)\n"
+             "  \u2022  Auth Token  (click \"Show\" on your Twilio dashboard)\n"
+             "  \u2022  Twilio Phone Number  (the number you just bought, e.g. +15551234567)"),
+
+            ("5", "Add Agent Phone Numbers",
+             "In the Settings tab, enter up to 6 agent phone numbers.\n"
+             "When a lead presses 1 during the call, all filled agent\n"
+             "numbers will ring simultaneously \u2014 first to pick up gets the call.\n"
+             "You need at least one agent number for transfers to work."),
+
+            ("6", "Write Your TTS Message",
+             "Go to the Message tab and type the script that will be\n"
+             "spoken to each lead when they answer the phone.\n"
+             "You can preview it with the \"Preview TTS\" button.\n"
+             "Example: \"Hi, this is a call from Acme Corp. Press 1 to\n"
+             "speak with a representative.\""),
+
+            ("7", "Import Your Leads",
+             "Go to the Leads tab and click \"Import CSV / XLSX\".\n"
+             "Your file needs a phone number column (auto-detected).\n"
+             "Phone numbers should be 10+ digits. US numbers like\n"
+             "(555) 123-4567 are automatically formatted to +15551234567."),
+
+            ("8", "Start Calling",
+             "Go to the Call Control tab and press START CALLING.\n"
+             "You\u2019ll see a live log of every call in real time.\n"
+             "Use PAUSE to temporarily halt, or STOP to end the session.\n"
+             "Results are saved in the Logs tab."),
+        ]
+
+        for num, title, body in steps:
+            card = tk.Frame(content, bg=self.BG_CARD, highlightthickness=1,
+                            highlightbackground=self.BORDER)
+            card.pack(fill=tk.X, pady=(0, 10), padx=4)
+
+            inner = tk.Frame(card, bg=self.BG_CARD)
+            inner.pack(fill=tk.X, padx=16, pady=12)
+
+            # Step number badge
+            header_frame = tk.Frame(inner, bg=self.BG_CARD)
+            header_frame.pack(fill=tk.X)
+
+            badge = tk.Label(header_frame, text=f" {num} ",
+                             font=("Segoe UI", 10, "bold"),
+                             bg=self.ACCENT, fg="#ffffff",
+                             padx=6, pady=1)
+            badge.pack(side=tk.LEFT, padx=(0, 10))
+
+            tk.Label(header_frame, text=title,
+                     font=("Segoe UI", 12, "bold"),
+                     bg=self.BG_CARD, fg=self.FG,
+                     anchor=tk.W).pack(side=tk.LEFT)
+
+            tk.Label(inner, text=body,
+                     font=("Segoe UI", 10), bg=self.BG_CARD, fg=self.FG_DIM,
+                     anchor=tk.W, justify=tk.LEFT,
+                     wraplength=700).pack(fill=tk.X, pady=(6, 0), padx=(0, 8))
+
+        # ── Footer tip ──
+        tip_frame = tk.Frame(content, bg=self.BG_LIGHT, highlightthickness=1,
+                             highlightbackground=self.ACCENT_DIM)
+        tip_frame.pack(fill=tk.X, pady=(8, 16), padx=4)
+        tip_inner = tk.Frame(tip_frame, bg=self.BG_LIGHT)
+        tip_inner.pack(fill=tk.X, padx=16, pady=12)
+        tk.Label(tip_inner, text="Tip",
+                 font=("Segoe UI", 10, "bold"), bg=self.BG_LIGHT, fg=self.GOLD,
+                 anchor=tk.W).pack(fill=tk.X)
+        tk.Label(tip_inner,
+                 text="The Webhook URL in Settings is pre-configured and should not be changed "
+                      "unless you are self-hosting the webhook server. "
+                      "The delay between calls (default 5 seconds) can be adjusted in Settings.",
+                 font=("Segoe UI", 10), bg=self.BG_LIGHT, fg=self.FG_DIM,
+                 anchor=tk.W, justify=tk.LEFT, wraplength=700).pack(fill=tk.X, pady=(4, 0))
 
     # ═══════════════════════════════════════════
     #  Cleanup
